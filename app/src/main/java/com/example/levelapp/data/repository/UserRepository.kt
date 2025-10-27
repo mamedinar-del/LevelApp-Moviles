@@ -20,7 +20,6 @@ class UserRepository(context: Context) {
         }
         cursor.close()
 
-        // Si no existe, lo insertamos
         val values = ContentValues().apply {
             put(DatabaseHelper.COLUMN_EMAIL, email)
             put(DatabaseHelper.COLUMN_PASSWORD, contrasena)
