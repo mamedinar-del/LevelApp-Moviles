@@ -37,4 +37,4 @@ Level-App es una aplicación móvil de comercio para la tienda Level-Up Gaming. 
     * Acceso a la **galería** del dispositivo para seleccionar imágenes de productos.
     * Uso del **almacenamiento interno** para la base de datos.
 
-    ===================================
+   ===================================
