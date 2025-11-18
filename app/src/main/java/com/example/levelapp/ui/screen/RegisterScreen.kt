@@ -1,36 +1,34 @@
 package com.example.levelapp.ui.screen
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.example.levelapp.R
 import com.example.levelapp.navigation.Screen
 import com.example.levelapp.viewmodel.AuthViewModel
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Box
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import com.example.levelapp.R
 
 @Composable
 fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.limpiarEstado()
-    }
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(Unit) { viewModel.limpiarEstado() }
 
     if (uiState.registroExitoso) {
         LaunchedEffect(Unit) {
-            navController.navigate(Screen.Login.route) {
-                popUpTo(Screen.Register.route) { inclusive = true }
-            }
+            navController.navigate(Screen.Login.route) { popUpTo(Screen.Register.route) { inclusive = true } }
         }
     }
 
@@ -45,12 +43,44 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(32.dp),
+                .padding(32.dp)
+                .verticalScroll(scrollState),
             verticalArrangement = Arrangement.Center,
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Regístrate y únete a nuestra comunidad", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.onPrimary)
-            Spacer(modifier = Modifier.height(32.dp))
+            Text("Crear Cuenta", style = MaterialTheme.typography.headlineLarge, color = MaterialTheme.colorScheme.onPrimary)
+            Spacer(modifier = Modifier.height(24.dp))
+
+            OutlinedTextField(
+                value = uiState.nombre,
+                onValueChange = { viewModel.onNombreChange(it) },
+                label = { Text("Nombre") },
+                isError = uiState.errorNombre != null,
+                supportingText = { uiState.errorNombre?.let { Text(it) } },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = uiState.apellido,
+                onValueChange = { viewModel.onApellidoChange(it) },
+                label = { Text("Apellido") },
+                isError = uiState.errorApellido != null,
+                supportingText = { uiState.errorApellido?.let { Text(it) } },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
+            OutlinedTextField(
+                value = uiState.rut,
+                onValueChange = { viewModel.onRutChange(it) },
+                label = { Text("RUT") },
+                isError = uiState.errorRut != null,
+                supportingText = { uiState.errorRut?.let { Text(it) } },
+                modifier = Modifier.fillMaxWidth()
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+
 
             OutlinedTextField(
                 value = uiState.email,
@@ -60,7 +90,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
                 supportingText = { uiState.errorEmail?.let { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = uiState.contrasena,
@@ -71,7 +101,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
                 supportingText = { uiState.errorContrasena?.let { Text(it) } },
                 modifier = Modifier.fillMaxWidth()
             )
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(8.dp))
 
             OutlinedTextField(
                 value = uiState.confirmarContrasena,
@@ -86,10 +116,7 @@ fun RegisterScreen(navController: NavController, viewModel: AuthViewModel) {
 
             Button(
                 onClick = { viewModel.registrar() },
-                modifier = Modifier.fillMaxWidth(),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = Color(0xFF0D6EFD)
-                )
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Text("Registrarse")
             }

@@ -8,12 +8,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
     companion object {
         private const val DATABASE_NAME = "levelup.db"
-        private const val DATABASE_VERSION = 3
+        private const val DATABASE_VERSION = 5
 
         const val TABLE_USERS = "users"
         const val COLUMN_ID = "id"
         const val COLUMN_EMAIL = "email"
         const val COLUMN_PASSWORD = "password"
+        const val COLUMN_NAME = "nombre"
+        const val COLUMN_LASTNAME = "apellido"
+        const val COLUMN_RUT = "rut"
+        const val COLUMN_PROFILE_IMAGE = "imagen_perfil"
 
         const val TABLE_PRODUCTS = "products"
         const val COLUMN_PRODUCT_ID = "id"
@@ -34,47 +38,16 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     }
 
     override fun onCreate(db: SQLiteDatabase) {
-        val createUserTableQuery = ("CREATE TABLE $TABLE_USERS ("
-                + "$COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "$COLUMN_EMAIL TEXT UNIQUE,"
-                + "$COLUMN_PASSWORD TEXT)")
-        db.execSQL(createUserTableQuery)
+        db.execSQL("CREATE TABLE $TABLE_USERS ($COLUMN_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_EMAIL TEXT UNIQUE, $COLUMN_PASSWORD TEXT, $COLUMN_NAME TEXT, $COLUMN_LASTNAME TEXT, $COLUMN_RUT TEXT, $COLUMN_PROFILE_IMAGE TEXT)")
 
-        val createProductTableQuery = ("CREATE TABLE $TABLE_PRODUCTS ("
-                + "$COLUMN_PRODUCT_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "$COLUMN_PRODUCT_NAME TEXT,"
-                + "$COLUMN_PRODUCT_DESC TEXT,"
-                + "$COLUMN_PRODUCT_STOCK INTEGER,"
-                + "$COLUMN_PRODUCT_PRICE REAL,"
-                + "$COLUMN_PRODUCT_CATEGORY TEXT,"
-                + "$COLUMN_PRODUCT_IMAGE_URI TEXT)")
-        db.execSQL(createProductTableQuery)
-
-        val createCartTableQuery = ("CREATE TABLE $TABLE_CART ("
-                + "$COLUMN_CART_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                + "$COLUMN_CART_PRODUCT_ID INTEGER UNIQUE,"
-                + "$COLUMN_CART_PRODUCT_NAME TEXT,"
-                + "$COLUMN_CART_PRODUCT_PRICE REAL,"
-                + "$COLUMN_CART_PRODUCT_IMAGE_URI TEXT,"
-                + "$COLUMN_CART_QUANTITY INTEGER)")
-        db.execSQL(createCartTableQuery)
+        db.execSQL("CREATE TABLE $TABLE_PRODUCTS ($COLUMN_PRODUCT_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_PRODUCT_NAME TEXT, $COLUMN_PRODUCT_DESC TEXT, $COLUMN_PRODUCT_STOCK INTEGER, $COLUMN_PRODUCT_PRICE REAL, $COLUMN_PRODUCT_CATEGORY TEXT, $COLUMN_PRODUCT_IMAGE_URI TEXT)")
+        db.execSQL("CREATE TABLE $TABLE_CART ($COLUMN_CART_ID INTEGER PRIMARY KEY AUTOINCREMENT, $COLUMN_CART_PRODUCT_ID INTEGER UNIQUE, $COLUMN_CART_PRODUCT_NAME TEXT, $COLUMN_CART_PRODUCT_PRICE REAL, $COLUMN_CART_PRODUCT_IMAGE_URI TEXT, $COLUMN_CART_QUANTITY INTEGER)")
     }
 
     override fun onUpgrade(db: SQLiteDatabase, oldVersion: Int, newVersion: Int) {
-        if (oldVersion < 2) {
-            val createProductTableQuery = ("CREATE TABLE $TABLE_PRODUCTS ("
-                    + "$COLUMN_PRODUCT_ID INTEGER PRIMARY KEY AUTOINCREMENT,"
-                    + "$COLUMN_PRODUCT_NAME TEXT,"
-                    + "$COLUMN_PRODUCT_DESC TEXT,"
-                    + "$COLUMN_PRODUCT_STOCK INTEGER,"
-                    + "$COLUMN_PRODUCT_PRICE REAL,"
-                    + "$COLUMN_PRODUCT_CATEGORY TEXT,"
-                    + "$COLUMN_PRODUCT_IMAGE_URI TEXT)")
-            db.execSQL(createProductTableQuery)
-        } else {
-            db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
-            db.execSQL("DROP TABLE IF EXISTS $TABLE_PRODUCTS")
-            onCreate(db)
-        }
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_USERS")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_PRODUCTS")
+        db.execSQL("DROP TABLE IF EXISTS $TABLE_CART")
+        onCreate(db)
     }
 }

@@ -10,50 +10,41 @@ import kotlinx.coroutines.withContext
 class UserRepository(context: Context) {
     private val dbHelper = DatabaseHelper(context)
 
-    suspend fun registrarUsuario(email: String, contrasena: String): Result<Unit> = withContext(Dispatchers.IO) {
+    suspend fun registrarUsuario(email: String, contrasena: String, nombre: String, apellido: String, rut: String): Result<Unit> = withContext(Dispatchers.IO) {
         val db = dbHelper.writableDatabase
-
         val cursor = db.query(DatabaseHelper.TABLE_USERS, arrayOf(DatabaseHelper.COLUMN_ID), "${DatabaseHelper.COLUMN_EMAIL} = ?", arrayOf(email), null, null, null)
-        if (cursor.moveToFirst()) {
-            cursor.close()
-            return@withContext Result.failure(Exception("El correo electrónico ya está registrado."))
-        }
+        if (cursor.moveToFirst()) { cursor.close(); return@withContext Result.failure(Exception("Email registrado")) }
         cursor.close()
 
         val values = ContentValues().apply {
-            put(DatabaseHelper.COLUMN_EMAIL, email)
-            put(DatabaseHelper.COLUMN_PASSWORD, contrasena)
+            put(DatabaseHelper.COLUMN_EMAIL, email); put(DatabaseHelper.COLUMN_PASSWORD, contrasena)
+            put(DatabaseHelper.COLUMN_NAME, nombre); put(DatabaseHelper.COLUMN_LASTNAME, apellido)
+            put(DatabaseHelper.COLUMN_RUT, rut)
+            put(DatabaseHelper.COLUMN_PROFILE_IMAGE, null as String?)
         }
-
-        val newRowId = db.insert(DatabaseHelper.TABLE_USERS, null, values)
-        if (newRowId == -1L) {
-            Result.failure(Exception("Error al registrar el usuario."))
-        } else {
-            Result.success(Unit)
-        }
+        if (db.insert(DatabaseHelper.TABLE_USERS, null, values) == -1L) Result.failure(Exception("Error al registrar")) else Result.success(Unit)
     }
 
     suspend fun iniciarSesion(email: String, contrasena: String): Result<User> = withContext(Dispatchers.IO) {
         val db = dbHelper.readableDatabase
-        val cursor = db.query(
-            DatabaseHelper.TABLE_USERS,
-            arrayOf(DatabaseHelper.COLUMN_ID, DatabaseHelper.COLUMN_EMAIL, DatabaseHelper.COLUMN_PASSWORD),
-            "${DatabaseHelper.COLUMN_EMAIL} = ? AND ${DatabaseHelper.COLUMN_PASSWORD} = ?",
-            arrayOf(email, contrasena),
-            null, null, null
-        )
-
+        val cursor = db.query(DatabaseHelper.TABLE_USERS, null, "${DatabaseHelper.COLUMN_EMAIL} = ? AND ${DatabaseHelper.COLUMN_PASSWORD} = ?", arrayOf(email, contrasena), null, null, null)
         if (cursor.moveToFirst()) {
             val user = User(
                 id = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ID)),
                 email = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EMAIL)),
-                contrasena = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD))
+                contrasena = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD)),
+                nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME)),
+                apellido = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_LASTNAME)),
+                rut = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_RUT)),
+                imagenPerfilUri = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROFILE_IMAGE))
             )
-            cursor.close()
-            Result.success(user)
-        } else {
-            cursor.close()
-            Result.failure(Exception("Correo o contraseña incorrectos."))
-        }
+            cursor.close(); Result.success(user)
+        } else { cursor.close(); Result.failure(Exception("Correo y/o contraseña inválidos")) }
+    }
+
+    suspend fun actualizarFotoPerfil(userId: Long, imagenUri: String): Result<Unit> = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        val values = ContentValues().apply { put(DatabaseHelper.COLUMN_PROFILE_IMAGE, imagenUri) }
+        if (db.update(DatabaseHelper.TABLE_USERS, values, "${DatabaseHelper.COLUMN_ID} = ?", arrayOf(userId.toString())) > 0) Result.success(Unit) else Result.failure(Exception("Error al guardar foto"))
     }
 }

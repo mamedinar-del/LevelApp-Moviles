@@ -5,58 +5,41 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.example.levelapp.ui.screen.AdminScreen
-import com.example.levelapp.ui.screen.CartScreen
-import com.example.levelapp.ui.screen.HomeScreen
-import com.example.levelapp.ui.screen.LoginScreen
-import com.example.levelapp.ui.screen.RegisterScreen
-import com.example.levelapp.viewmodel.AuthViewModel
-import com.example.levelapp.viewmodel.CartViewModel
-import com.example.levelapp.viewmodel.ProductViewModel
+import com.example.levelapp.ui.screen.*
+import com.example.levelapp.viewmodel.*
 
 @Composable
 fun AppNavigation() {
     val navController = rememberNavController()
+
     val authViewModel: AuthViewModel = viewModel()
     val productViewModel: ProductViewModel = viewModel()
     val cartViewModel: CartViewModel = viewModel()
 
-    NavHost(navController = navController, startDestination = Screen.Login.route) {
+    NavHost(navController = navController, startDestination = Screen.Splash.route) {
+
+        composable(Screen.Splash.route) {
+            AnimatedSplashScreen(navController)
+        }
 
         composable(Screen.Login.route) {
-            LoginScreen(
-                navController = navController,
-                viewModel = authViewModel
-            )
+            LoginScreen(navController, authViewModel)
         }
 
         composable(Screen.Register.route) {
-            RegisterScreen(
-                navController = navController,
-                viewModel = authViewModel
-            )
+            RegisterScreen(navController, authViewModel)
         }
 
         composable(Screen.Home.route) {
-            HomeScreen(
-                navController = navController,
-                productViewModel = productViewModel,
-                cartViewModel = cartViewModel
-            )
+            HomeScreen(navController, productViewModel, cartViewModel, authViewModel)
         }
 
         composable(Screen.Admin.route) {
-            AdminScreen(
-                navController = navController,
-                productViewModel = productViewModel
-            )
+            AdminScreen(navController, productViewModel)
         }
 
         composable(Screen.Cart.route) {
-            CartScreen(
-                navController = navController,
-                cartViewModel = cartViewModel
-            )
+            CartScreen(navController, cartViewModel)
         }
     }
 }
