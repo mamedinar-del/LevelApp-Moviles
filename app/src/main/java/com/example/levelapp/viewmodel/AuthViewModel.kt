@@ -75,4 +75,12 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         if (s.rut.isBlank()) { _uiState.update { it.copy(errorRut = "Requerido") }; esValido = false }
         return esValido
     }
+
+    fun cargarTodosLosUsuarios() {
+        viewModelScope.launch {
+            val usuarios = userRepository.getAllUsers()
+            _uiState.update { it.copy(listaUsuarios = usuarios) }
+        }
+    }
+
 }

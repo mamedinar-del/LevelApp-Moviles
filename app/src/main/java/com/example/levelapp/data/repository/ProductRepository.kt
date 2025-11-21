@@ -48,4 +48,18 @@ class ProductRepository(context: Context) {
         cursor.close()
         products
     }
+
+    suspend fun updateProduct(product: Product): Result<Unit> = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        val values = ContentValues().apply {
+            put(DatabaseHelper.COLUMN_PRODUCT_NAME, product.nombre)
+            put(DatabaseHelper.COLUMN_PRODUCT_DESC, product.descripcion)
+            put(DatabaseHelper.COLUMN_PRODUCT_STOCK, product.stock)
+            put(DatabaseHelper.COLUMN_PRODUCT_PRICE, product.precio)
+            put(DatabaseHelper.COLUMN_PRODUCT_CATEGORY, product.categoria)
+            put(DatabaseHelper.COLUMN_PRODUCT_IMAGE_URI, product.imagenUri)
+        }
+        val rows = db.update(DatabaseHelper.TABLE_PRODUCTS, values, "${DatabaseHelper.COLUMN_PRODUCT_ID} = ?", arrayOf(product.id.toString()))
+        if (rows > 0) Result.success(Unit) else Result.failure(Exception("No se pudo actualizar"))
+    }
 }

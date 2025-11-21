@@ -47,4 +47,24 @@ class UserRepository(context: Context) {
         val values = ContentValues().apply { put(DatabaseHelper.COLUMN_PROFILE_IMAGE, imagenUri) }
         if (db.update(DatabaseHelper.TABLE_USERS, values, "${DatabaseHelper.COLUMN_ID} = ?", arrayOf(userId.toString())) > 0) Result.success(Unit) else Result.failure(Exception("Error al guardar foto"))
     }
+
+    suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
+        val db = dbHelper.readableDatabase
+        val cursor = db.query(DatabaseHelper.TABLE_USERS, null, null, null, null, null, null)
+        val users = mutableListOf<User>()
+        while (cursor.moveToNext()) {
+            users.add(User(
+                id = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ID)),
+                email = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EMAIL)),
+                contrasena = "",
+                nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME)),
+                apellido = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_LASTNAME)),
+                rut = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_RUT)),
+                imagenPerfilUri = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROFILE_IMAGE))
+            ))
+        }
+        cursor.close()
+        users
+    }
 }
+

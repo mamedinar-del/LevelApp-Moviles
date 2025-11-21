@@ -35,7 +35,7 @@ fun AppNavigation() {
         }
 
         composable(Screen.Admin.route) {
-            AdminScreen(navController, productViewModel)
+            AdminScreen(navController, productViewModel, authViewModel = authViewModel)
         }
 
         composable(Screen.Cart.route) {

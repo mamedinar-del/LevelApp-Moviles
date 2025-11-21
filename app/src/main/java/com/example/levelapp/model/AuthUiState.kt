@@ -19,5 +19,7 @@ data class AuthUiState(
     val registroExitoso: Boolean = false,
 
     val usuarioActual: User? = null,
-    val mostrarDialogoFoto: Boolean = false
+    val mostrarDialogoFoto: Boolean = false,
+
+    val listaUsuarios: List<User> = emptyList()
 )
