@@ -132,19 +132,77 @@ fun ProductListContent(products: List<Product>, cartViewModel: CartViewModel) {
 
 @Composable
 fun ProductCard(product: Product, onAddToCart: () -> Unit) {
-    Card(elevation = CardDefaults.cardElevation(6.dp), shape = RoundedCornerShape(16.dp), colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface)) {
-        Column {
-            Box(modifier = Modifier.fillMaxWidth().height(140.dp).background(Color.White), contentAlignment = Alignment.Center) {
-                val painter = rememberAsyncImagePainter(model = androidx.compose.ui.platform.LocalContext.current.let { if (product.imagenUri.startsWith("android.resource")) Uri.parse(product.imagenUri) else java.io.File(product.imagenUri) }, error = painterResource(R.drawable.logo))
-                Image(painter, product.nombre, modifier = Modifier.size(110.dp), contentScale = ContentScale.Fit)
+    Card(
+        elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.fillMaxSize()) {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(140.dp)
+                    .background(Color.White),
+                contentAlignment = Alignment.Center
+            ) {
+                val model = when {
+                    product.imagenUri.startsWith("android.resource") -> Uri.parse(product.imagenUri)
+
+                    product.imagenUri.startsWith("http") -> product.imagenUri
+
+                    else -> java.io.File(product.imagenUri)
+                }
+
+                val painter = rememberAsyncImagePainter(
+                    model = model,
+                    error = painterResource(R.drawable.logo),
+                    placeholder = painterResource(R.drawable.logo)
+                )
+
+                Image(
+                    painter = painter,
+                    contentDescription = product.nombre,
+                    modifier = Modifier.size(110.dp),
+                    contentScale = ContentScale.Fit
+                )
             }
-            Column(Modifier.padding(12.dp)) {
-                Text(product.categoria.uppercase(), style = MaterialTheme.typography.labelSmall, color = Color.Gray, fontWeight = FontWeight.Bold)
-                Text(product.nombre, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, maxLines = 2, minLines = 2)
-                Spacer(Modifier.height(8.dp))
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Text("$${product.precio.toInt()}", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.ExtraBold, color = MaterialTheme.colorScheme.primary)
-                    FilledIconButton({ onAddToCart() }, Modifier.size(36.dp), colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)) { Icon(Icons.Default.AddShoppingCart, "Añadir", Modifier.size(18.dp)) }
+
+            Column(Modifier.padding(12.dp).fillMaxWidth()) {
+                Text(
+                    text = product.categoria.uppercase(),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = Color.Gray,
+                    fontWeight = FontWeight.Bold
+                )
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = product.nombre,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    maxLines = 2,
+                    minLines = 2
+                )
+                Spacer(modifier = Modifier.height(8.dp))
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "$${product.precio.toInt()}",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.ExtraBold,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                    FilledIconButton(
+                        onClick = onAddToCart,
+                        modifier = Modifier.size(36.dp),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                    ) {
+                        Icon(Icons.Default.AddShoppingCart, contentDescription = "Añadir", modifier = Modifier.size(18.dp))
+                    }
                 }
             }
         }

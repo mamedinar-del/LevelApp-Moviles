@@ -134,7 +134,7 @@ fun ServiceScreen(serviceViewModel: ServiceViewModel = viewModel()) {
                             onValueChange = { serviceViewModel.onDispositivoChange(it) },
                             label = { Text("Dispositivo") },
                             placeholder = { Text("Ej: PlayStation 5") },
-                            leadingIcon = { Icon(Icons.Default.Gamepad, null, tint = primaryColor) },
+                            leadingIcon = { Icon(Icons.Default.Gamepad, null, tint = MaterialTheme.colorScheme.primary) },
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedCornerShape(12.dp),
                             colors = OutlinedTextFieldDefaults.colors(
@@ -149,7 +149,7 @@ fun ServiceScreen(serviceViewModel: ServiceViewModel = viewModel()) {
                             value = uiState.descripcion,
                             onValueChange = { serviceViewModel.onDescripcionChange(it) },
                             label = { Text("Detalle del Problema") },
-                            leadingIcon = { Icon(Icons.Default.Description, null, tint = primaryColor) },
+                            leadingIcon = { Icon(Icons.Default.Description, null, tint = MaterialTheme.colorScheme.primary) },
                             modifier = Modifier.fillMaxWidth().height(120.dp),
                             shape = RoundedCornerShape(12.dp),
                             singleLine = false,
@@ -185,7 +185,7 @@ fun ServiceScreen(serviceViewModel: ServiceViewModel = viewModel()) {
                                     .background(primaryColor.copy(alpha = 0.1f), CircleShape),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(Icons.Default.LocationOn, null, tint = primaryColor)
+                                Icon(Icons.Default.LocationOn, null, tint = MaterialTheme.colorScheme.primary)
                             }
 
                             Spacer(modifier = Modifier.width(12.dp))
@@ -225,7 +225,7 @@ fun ServiceScreen(serviceViewModel: ServiceViewModel = viewModel()) {
                                 .height(54.dp)
                                 .shadow(4.dp, RoundedCornerShape(12.dp)),
                             shape = RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(containerColor = primaryColor),
+                            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary),
                             enabled = !uiState.enviandoSolicitud && !uiState.solicitudEnviada
                         ) {
                             if (uiState.enviandoSolicitud) {

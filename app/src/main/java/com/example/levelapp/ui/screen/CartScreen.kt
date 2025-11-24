@@ -1,16 +1,20 @@
 package com.example.levelapp.ui.screen
 
 import android.net.Uri
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -65,54 +69,81 @@ fun CartScreenInternal(cartViewModel: CartViewModel) {
                 }
             }
 
-            if (uiState.cartItems.isEmpty()) {
+            if (uiState.cartItems.isEmpty() && !uiState.pagoExitoso) {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(Icons.Default.Delete, null, modifier = Modifier.size(64.dp), tint = Color.White)
+                        Icon(Icons.Default.ShoppingCart, null, modifier = Modifier.size(80.dp), tint = Color.White.copy(alpha = 0.7f))
                         Spacer(modifier = Modifier.height(16.dp))
                         Text("Tu carrito está vacío", style = MaterialTheme.typography.headlineSmall, color = Color.White)
                     }
                 }
             } else {
                 Column(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(uiState.cartItems) { item ->
-                            CartListItem(
-                                item = item,
-                                onIncrease = { cartViewModel.increaseQuantity(item) },
-                                onDecrease = { cartViewModel.decreaseQuantity(item) },
-                                onRemove = { cartViewModel.removeFromCart(item.productId) }
-                            )
+
+                    Box(modifier = Modifier.weight(1f)) {
+                        if (uiState.pagoExitoso) {
+                            Column(
+                                modifier = Modifier.fillMaxSize(),
+                                verticalArrangement = Arrangement.Center,
+                                horizontalAlignment = Alignment.CenterHorizontally
+                            ) {
+                                Icon(Icons.Default.CheckCircle, null, tint = Color.White, modifier = Modifier.size(100.dp))
+                                Spacer(modifier = Modifier.height(16.dp))
+                                Text("¡Pedido Confirmado!", style = MaterialTheme.typography.headlineMedium, color = Color.White, fontWeight = FontWeight.Bold)
+                                Text("Gracias por tu compra", style = MaterialTheme.typography.titleMedium, color = Color.White.copy(0.9f))
+                            }
+                        } else {
+                            LazyColumn(
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(uiState.cartItems) { item ->
+                                    CartListItem(
+                                        item = item,
+                                        onIncrease = { cartViewModel.increaseQuantity(item) },
+                                        onDecrease = { cartViewModel.decreaseQuantity(item) },
+                                        onRemove = { cartViewModel.removeFromCart(item.productId) }
+                                    )
+                                }
+                            }
                         }
                     }
 
-                    Divider(color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 16.dp))
+                    if (!uiState.pagoExitoso) {
+                        Divider(color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 16.dp))
 
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Total a Pagar:", style = MaterialTheme.typography.titleLarge, color = Color.White)
-                        Text(
-                            text = currencyFormat.format(uiState.total),
-                            style = MaterialTheme.typography.headlineMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = Color.White
-                        )
-                    }
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically
+                        ) {
+                            Text("Total a Pagar:", style = MaterialTheme.typography.titleLarge, color = Color.White)
+                            Text(
+                                text = currencyFormat.format(uiState.total),
+                                style = MaterialTheme.typography.headlineMedium,
+                                fontWeight = FontWeight.Bold,
+                                color = Color.White
+                            )
+                        }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                        Spacer(modifier = Modifier.height(16.dp))
 
-                    Button(
-                        onClick = { /* Pago */ },
-                        modifier = Modifier.fillMaxWidth().height(50.dp),
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1A2B3C))
-                    ) {
-                        Text("Ir a Pagar")
+                        Button(
+                            onClick = { cartViewModel.procesarPago() },
+                            modifier = Modifier.fillMaxWidth().height(54.dp),
+                            shape = RoundedCornerShape(12.dp),
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = if (uiState.procesandoPago) Color(0xFF2E7D32) else Color(0xFF1A2B3C)
+                            ),
+                            enabled = !uiState.procesandoPago
+                        ) {
+                            if (uiState.procesandoPago) {
+                                CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
+                                Spacer(modifier = Modifier.width(12.dp))
+                                Text("Procesando Compra...", fontWeight = FontWeight.Bold)
+                            } else {
+                                Text("Ir a Pagar", fontWeight = FontWeight.Bold, style = MaterialTheme.typography.titleMedium)
+                            }
+                        }
                     }
                 }
             }

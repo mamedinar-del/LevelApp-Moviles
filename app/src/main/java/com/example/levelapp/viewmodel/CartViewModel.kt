@@ -6,12 +6,16 @@ import androidx.lifecycle.viewModelScope
 import com.example.levelapp.data.repository.CartRepository
 import com.example.levelapp.model.CartItem
 import com.example.levelapp.model.Product
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
 data class CartUiState(
     val cartItems: List<CartItem> = emptyList(),
-    val total: Double = 0.0
+    val total: Double = 0.0,
+
+    val procesandoPago: Boolean = false,
+    val pagoExitoso: Boolean = false
 )
 
 class CartViewModel(application: Application) : AndroidViewModel(application) {
@@ -39,7 +43,6 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
     fun increaseQuantity(item: CartItem) {
         viewModelScope.launch {
             val updatedItem = item.copy(quantity = item.quantity + 1)
@@ -60,7 +63,6 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-
     fun removeFromCart(productId: Long) {
         viewModelScope.launch {
             repository.removeFromCart(productId)
@@ -77,6 +79,28 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
                     total = items.sumOf { item -> item.precio * item.quantity }
                 )
             }
+        }
+    }
+
+    fun procesarPago() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(procesandoPago = true) }
+
+            delay(3000)
+
+            repository.clearCart()
+
+            _uiState.update {
+                it.copy(
+                    procesandoPago = false,
+                    pagoExitoso = true,
+                    cartItems = emptyList(),
+                    total = 0.0
+                )
+            }
+
+            delay(3000)
+            _uiState.update { it.copy(pagoExitoso = false) }
         }
     }
 }

@@ -47,4 +47,9 @@ class CartRepository(context: Context) {
         val db = dbHelper.writableDatabase
         db.delete(DatabaseHelper.TABLE_CART, "${DatabaseHelper.COLUMN_CART_PRODUCT_ID} = ?", arrayOf(productId.toString()))
     }
+
+    suspend fun clearCart() = withContext(Dispatchers.IO) {
+        val db = dbHelper.writableDatabase
+        db.delete(DatabaseHelper.TABLE_CART, null, null)
+    }
 }

@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.levelapp.data.repository.ProductRepository
+import com.example.levelapp.data.repository.RawgRepository
 import com.example.levelapp.model.Product
+import com.example.levelapp.model.RawgGame
 import com.example.levelapp.ui.utils.copiarImagenAInternalStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -25,11 +27,18 @@ data class ProductUiState(
     val searchText: String = "",
     val productosFiltrados: List<Product> = emptyList(),
 
-    val idEdicion: Long? = null
+    val idEdicion: Long? = null,
+
+    val busquedaApiQuery: String = "",
+    val resultadosApi: List<RawgGame> = emptyList(),
+    val buscandoApi: Boolean = false,
+    val mostrarDialogoApi: Boolean = false
 )
 
 class ProductViewModel(application: Application) : AndroidViewModel(application) {
     private val repository = ProductRepository(application)
+    private val rawgRepository = RawgRepository()
+
     private val _uiState = MutableStateFlow(ProductUiState())
     val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
 
@@ -43,9 +52,14 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
 
     fun onImagenUriChange(uri: Uri?) {
         if (uri == null) { _uiState.update { it.copy(imagenUri = null) }; return }
-        viewModelScope.launch(Dispatchers.IO) {
-            val ruta = copiarImagenAInternalStorage(getApplication(), uri)
-            if (ruta != null) _uiState.update { it.copy(imagenUri = Uri.parse("file://$ruta")) }
+
+        if (uri.toString().startsWith("http")) {
+            _uiState.update { it.copy(imagenUri = uri) }
+        } else {
+            viewModelScope.launch(Dispatchers.IO) {
+                val ruta = copiarImagenAInternalStorage(getApplication(), uri)
+                if (ruta != null) _uiState.update { it.copy(imagenUri = Uri.parse("file://$ruta")) }
+            }
         }
     }
 
@@ -59,7 +73,6 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             state.copy(searchText = text, productosFiltrados = filtrados)
         }
     }
-
 
     fun empezarEdicion(producto: Product) {
         _uiState.update {
@@ -99,6 +112,30 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
         }
     }
 
+    fun toggleDialogoApi() {
+        _uiState.update { it.copy(mostrarDialogoApi = !it.mostrarDialogoApi, resultadosApi = emptyList(), busquedaApiQuery = "") }
+    }
+
+    fun buscarEnApi(query: String) {
+        _uiState.update { it.copy(busquedaApiQuery = query, buscandoApi = true) }
+        viewModelScope.launch {
+            val resultados = rawgRepository.searchGames(query)
+            _uiState.update { it.copy(resultadosApi = resultados, buscandoApi = false) }
+        }
+    }
+
+    fun seleccionarJuegoApi(juego: RawgGame) {
+        _uiState.update {
+            it.copy(
+                nombre = juego.name,
+                descripcion = "Lanzamiento: ${juego.released ?: "N/A"} | Rating: ${juego.rating}/5",
+                categoria = "Videojuego",
+                imagenUri = if (juego.backgroundImage != null) Uri.parse(juego.backgroundImage) else null,
+                mostrarDialogoApi = false
+            )
+        }
+    }
+
     fun cargarProductos() = viewModelScope.launch {
         val lista = repository.getAllProducts()
         _uiState.update {
@@ -106,6 +143,17 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
                 productos = lista,
                 productosFiltrados = if (it.searchText.isBlank()) lista else lista.filter { p -> p.nombre.contains(it.searchText, true) }
             )
+        }
+    }
+
+    fun eliminarProducto(producto: Product) {
+        viewModelScope.launch {
+            repository.deleteProduct(producto.id).onSuccess {
+                cargarProductos()
+                _uiState.update { it.copy(mensaje = "Producto eliminado: ${producto.nombre}") }
+            }.onFailure {
+                _uiState.update { it.copy(mensaje = "Error al eliminar") }
+            }
         }
     }
 
