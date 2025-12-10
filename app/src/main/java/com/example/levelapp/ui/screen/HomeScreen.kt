@@ -1,8 +1,12 @@
 package com.example.levelapp.ui.screen
 
 import android.net.Uri
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -17,6 +21,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
@@ -31,6 +36,7 @@ import com.example.levelapp.navigation.Screen
 import com.example.levelapp.viewmodel.AuthViewModel
 import com.example.levelapp.viewmodel.CartViewModel
 import com.example.levelapp.viewmodel.ProductViewModel
+import kotlinx.coroutines.delay
 
 data class BottomNavItem(
     val label: String,
@@ -95,7 +101,13 @@ fun HomeScreen(
 
             Box(modifier = Modifier.fillMaxSize().padding(finalPadding)) {
                 when (selectedItemIndex) {
-                    0 -> ProductListContent(productState.productosFiltrados, cartViewModel)
+                    0 -> ProductListContent(
+                        products = productState.productosFiltrados,
+                        cartViewModel = cartViewModel,
+                        onProductClick = { productId ->
+                            navController.navigate(Screen.Detail.createRoute(productId))
+                        }
+                    )
                     1 -> com.example.levelapp.ui.screen.ServiceScreen()
                     2 -> CartScreenInternal(cartViewModel)
                     3 -> ProfileScreen(
@@ -122,21 +134,88 @@ fun TopSearchBar(searchText: String, onSearchChange: (String) -> Unit) {
 }
 
 @Composable
-fun ProductListContent(products: List<Product>, cartViewModel: CartViewModel) {
-    LazyVerticalGrid(columns = GridCells.Fixed(2), modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalArrangement = Arrangement.spacedBy(12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp), contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)) {
-        item(span = { GridItemSpan(2) }) { Card(modifier = Modifier.fillMaxWidth().height(140.dp).padding(bottom = 8.dp), colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2B3C)), shape = RoundedCornerShape(16.dp)) { Row(modifier = Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) { Column(modifier = Modifier.weight(1f)) { Text("Ofertas de Verano", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold); Text("Hasta 40% de descuento", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f)) }; Icon(Icons.Default.LocalOffer, null, tint = Color.White, modifier = Modifier.size(60.dp)) } } }
-        item(span = { GridItemSpan(2) }) { Text("Populares", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(4.dp)) }
-        if (products.isEmpty()) { item(span = { GridItemSpan(2) }) { Box(modifier = Modifier.height(200.dp), contentAlignment = Alignment.Center) { Text("No se encontraron productos", color = Color.White, fontWeight = FontWeight.Bold) } } } else { items(products) { product -> ProductCard(product, { cartViewModel.addToCart(product) }) } }
+fun ProductListContent(
+    products: List<Product>,
+    cartViewModel: CartViewModel,
+    onProductClick: (Long) -> Unit
+) {
+    LazyVerticalGrid(
+        columns = GridCells.Fixed(2),
+        modifier = Modifier.fillMaxSize().padding(horizontal = 8.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        contentPadding = PaddingValues(top = 16.dp, bottom = 16.dp)
+    ) {
+        item(span = { GridItemSpan(2) }) {
+            Card(
+                modifier = Modifier.fillMaxWidth().height(140.dp).padding(bottom = 8.dp),
+                colors = CardDefaults.cardColors(containerColor = Color(0xFF1A2B3C)),
+                shape = RoundedCornerShape(16.dp)
+            ) {
+                Row(modifier = Modifier.fillMaxSize().padding(20.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text("Ofertas de Verano", style = MaterialTheme.typography.headlineSmall, color = Color.White, fontWeight = FontWeight.Bold)
+                        Text("Hasta 40% de descuento", style = MaterialTheme.typography.bodyMedium, color = Color.White.copy(alpha = 0.9f))
+                    }
+                    Icon(Icons.Default.LocalOffer, null, tint = Color.White, modifier = Modifier.size(60.dp))
+                }
+            }
+        }
+        item(span = { GridItemSpan(2) }) {
+            Text("Populares", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = Color.White, modifier = Modifier.padding(4.dp))
+        }
+        if (products.isEmpty()) {
+            item(span = { GridItemSpan(2) }) {
+                Box(modifier = Modifier.height(200.dp), contentAlignment = Alignment.Center) {
+                    Text("No se encontraron productos", color = Color.White, fontWeight = FontWeight.Bold)
+                }
+            }
+        } else {
+            items(products) { product ->
+                ProductCard(
+                    product = product,
+                    onAddToCart = { cartViewModel.addToCart(product) },
+                    onClick = { onProductClick(product.id) }
+                )
+            }
+        }
     }
 }
 
 @Composable
-fun ProductCard(product: Product, onAddToCart: () -> Unit) {
+fun ProductCard(
+    product: Product,
+    onAddToCart: () -> Unit,
+    onClick: () -> Unit
+) {
+    var isAdded by remember { mutableStateOf(false) }
+
+    LaunchedEffect(isAdded) {
+        if (isAdded) {
+            delay(1000)
+            isAdded = false
+        }
+    }
+
+    val scale by animateFloatAsState(
+        targetValue = if (isAdded) 1.2f else 1f,
+        animationSpec = tween(durationMillis = 300),
+        label = "buttonScale"
+    )
+
+    val buttonColor by animateColorAsState(
+        targetValue = if (isAdded) Color(0xFF4CAF50) else MaterialTheme.colorScheme.primary,
+        animationSpec = tween(durationMillis = 300),
+        label = "buttonColor"
+    )
+
     Card(
         elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
-        modifier = Modifier.fillMaxWidth()
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             Box(
@@ -148,9 +227,7 @@ fun ProductCard(product: Product, onAddToCart: () -> Unit) {
             ) {
                 val model = when {
                     product.imagenUri.startsWith("android.resource") -> Uri.parse(product.imagenUri)
-
                     product.imagenUri.startsWith("http") -> product.imagenUri
-
                     else -> java.io.File(product.imagenUri)
                 }
 
@@ -196,12 +273,22 @@ fun ProductCard(product: Product, onAddToCart: () -> Unit) {
                         fontWeight = FontWeight.ExtraBold,
                         color = MaterialTheme.colorScheme.primary
                     )
+
                     FilledIconButton(
-                        onClick = onAddToCart,
-                        modifier = Modifier.size(36.dp),
-                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = MaterialTheme.colorScheme.primary)
+                        onClick = {
+                            onAddToCart()
+                            isAdded = true
+                        },
+                        modifier = Modifier
+                            .size(36.dp)
+                            .scale(scale),
+                        colors = IconButtonDefaults.filledIconButtonColors(containerColor = buttonColor)
                     ) {
-                        Icon(Icons.Default.AddShoppingCart, contentDescription = "Añadir", modifier = Modifier.size(18.dp))
+                        if (isAdded) {
+                            Icon(Icons.Default.Check, contentDescription = "Añadido", modifier = Modifier.size(18.dp))
+                        } else {
+                            Icon(Icons.Default.AddShoppingCart, contentDescription = "Añadir", modifier = Modifier.size(18.dp))
+                        }
                     }
                 }
             }

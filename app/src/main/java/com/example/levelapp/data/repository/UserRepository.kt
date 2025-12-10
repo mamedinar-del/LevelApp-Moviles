@@ -1,70 +1,73 @@
 package com.example.levelapp.data.repository
 
-import android.content.ContentValues
 import android.content.Context
-import com.example.levelapp.data.local.DatabaseHelper
+import com.example.levelapp.data.network.RetrofitClient
 import com.example.levelapp.model.User
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 
 class UserRepository(context: Context) {
-    private val dbHelper = DatabaseHelper(context)
 
-    suspend fun registrarUsuario(email: String, contrasena: String, nombre: String, apellido: String, rut: String): Result<Unit> = withContext(Dispatchers.IO) {
-        val db = dbHelper.writableDatabase
-        val cursor = db.query(DatabaseHelper.TABLE_USERS, arrayOf(DatabaseHelper.COLUMN_ID), "${DatabaseHelper.COLUMN_EMAIL} = ?", arrayOf(email), null, null, null)
-        if (cursor.moveToFirst()) { cursor.close(); return@withContext Result.failure(Exception("Email registrado")) }
-        cursor.close()
+    private val api = RetrofitClient.backendService
 
-        val values = ContentValues().apply {
-            put(DatabaseHelper.COLUMN_EMAIL, email); put(DatabaseHelper.COLUMN_PASSWORD, contrasena)
-            put(DatabaseHelper.COLUMN_NAME, nombre); put(DatabaseHelper.COLUMN_LASTNAME, apellido)
-            put(DatabaseHelper.COLUMN_RUT, rut)
-            put(DatabaseHelper.COLUMN_PROFILE_IMAGE, null as String?)
+    suspend fun registrarUsuario(user: User): Result<User> = withContext(Dispatchers.IO) {
+        try {
+            val response = api.registerUser(user)
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Error registro: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
         }
-        if (db.insert(DatabaseHelper.TABLE_USERS, null, values) == -1L) Result.failure(Exception("Error al registrar")) else Result.success(Unit)
     }
 
     suspend fun iniciarSesion(email: String, contrasena: String): Result<User> = withContext(Dispatchers.IO) {
-        val db = dbHelper.readableDatabase
-        val cursor = db.query(DatabaseHelper.TABLE_USERS, null, "${DatabaseHelper.COLUMN_EMAIL} = ? AND ${DatabaseHelper.COLUMN_PASSWORD} = ?", arrayOf(email, contrasena), null, null, null)
-        if (cursor.moveToFirst()) {
-            val user = User(
-                id = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ID)),
-                email = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EMAIL)),
-                contrasena = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PASSWORD)),
-                nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME)),
-                apellido = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_LASTNAME)),
-                rut = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_RUT)),
-                imagenPerfilUri = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROFILE_IMAGE))
-            )
-            cursor.close(); Result.success(user)
-        } else { cursor.close(); Result.failure(Exception("Correo y/o contraseña inválidos")) }
-    }
+        try {
+            val loginRequest = User(email = email, contrasena = contrasena, nombre = "", apellido = "", rut = "")
+            val response = api.loginUser(loginRequest)
 
-    suspend fun actualizarFotoPerfil(userId: Long, imagenUri: String): Result<Unit> = withContext(Dispatchers.IO) {
-        val db = dbHelper.writableDatabase
-        val values = ContentValues().apply { put(DatabaseHelper.COLUMN_PROFILE_IMAGE, imagenUri) }
-        if (db.update(DatabaseHelper.TABLE_USERS, values, "${DatabaseHelper.COLUMN_ID} = ?", arrayOf(userId.toString())) > 0) Result.success(Unit) else Result.failure(Exception("Error al guardar foto"))
+            if (response.isSuccessful && response.body() != null) {
+                Result.success(response.body()!!)
+            } else {
+                Result.failure(Exception("Credenciales inválidas"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 
     suspend fun getAllUsers(): List<User> = withContext(Dispatchers.IO) {
-        val db = dbHelper.readableDatabase
-        val cursor = db.query(DatabaseHelper.TABLE_USERS, null, null, null, null, null, null)
-        val users = mutableListOf<User>()
-        while (cursor.moveToNext()) {
-            users.add(User(
-                id = cursor.getLong(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_ID)),
-                email = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_EMAIL)),
-                contrasena = "",
-                nombre = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_NAME)),
-                apellido = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_LASTNAME)),
-                rut = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_RUT)),
-                imagenPerfilUri = cursor.getString(cursor.getColumnIndexOrThrow(DatabaseHelper.COLUMN_PROFILE_IMAGE))
-            ))
+        try {
+            val response = api.getAllUsersFromBackend()
+            if (response.isSuccessful && response.body() != null) {
+                response.body()!!
+            } else {
+                emptyList()
+            }
+        } catch (e: Exception) {
+            emptyList()
         }
-        cursor.close()
-        users
+    }
+
+    suspend fun actualizarFotoPerfil(userId: Long, imagenUri: String): Result<Unit> = withContext(Dispatchers.IO) {
+        try {
+            val userUpdate = User(
+                id = userId,
+                imagenPerfilUri = imagenUri,
+                email = "", contrasena = "", nombre = "", apellido = "", rut = ""
+            )
+
+            val response = api.updateUserInBackend(userId, userUpdate)
+
+            if (response.isSuccessful) {
+                Result.success(Unit)
+            } else {
+                Result.failure(Exception("Error al actualizar foto: ${response.code()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
     }
 }
-

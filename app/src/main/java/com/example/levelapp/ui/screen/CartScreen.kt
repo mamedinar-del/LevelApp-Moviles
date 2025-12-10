@@ -132,7 +132,7 @@ fun CartScreenInternal(cartViewModel: CartViewModel) {
                             modifier = Modifier.fillMaxWidth().height(54.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(
-                                containerColor = if (uiState.procesandoPago) Color(0xFF2E7D32) else Color(0xFF1A2B3C)
+                                containerColor = if (uiState.procesandoPago) Color(0xFF38a1ee) else Color(0xFF1A2B3C)
                             ),
                             enabled = !uiState.procesandoPago
                         ) {

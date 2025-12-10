@@ -6,6 +6,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.levelapp.data.repository.UserRepository
 import com.example.levelapp.model.AuthUiState
+import com.example.levelapp.model.User
 import com.example.levelapp.ui.utils.copiarImagenAInternalStorage
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
@@ -25,22 +26,44 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun registrar() {
         if (!validarRegistro()) return
+
         viewModelScope.launch {
             val s = _uiState.value
-            userRepository.registrarUsuario(s.email, s.contrasena, s.nombre, s.apellido, s.rut)
-                .onSuccess { _uiState.update { it.copy(registroExitoso = true, mensaje = "¡Registro exitoso!") } }
-                .onFailure { e -> _uiState.update { it.copy(mensaje = e.message) } }
+
+            val nuevoUsuario = User(
+                email = s.email,
+                contrasena = s.contrasena,
+                nombre = s.nombre,
+                apellido = s.apellido,
+                rut = s.rut
+            )
+
+            userRepository.registrarUsuario(nuevoUsuario)
+                .onSuccess {
+                    _uiState.update { it.copy(registroExitoso = true, mensaje = "¡Registro exitoso!") }
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(mensaje = e.message ?: "Error al registrar") }
+                }
         }
     }
 
     fun iniciarSesion(onLoginSuccess: () -> Unit, onAdminLoginSuccess: () -> Unit) {
         val (email, pass) = _uiState.value.email.trim() to _uiState.value.contrasena.trim()
+
         if (email == "admin" && pass == "admin") { onAdminLoginSuccess(); return }
+
         if (email.isBlank() || pass.isBlank()) { _uiState.update { it.copy(mensaje = "Campos vacíos") }; return }
+
         viewModelScope.launch {
             userRepository.iniciarSesion(email, pass)
-                .onSuccess { user -> _uiState.update { it.copy(usuarioActual = user) }; onLoginSuccess() }
-                .onFailure { e -> _uiState.update { it.copy(mensaje = e.message) } }
+                .onSuccess { user ->
+                    _uiState.update { it.copy(usuarioActual = user) }
+                    onLoginSuccess()
+                }
+                .onFailure { e ->
+                    _uiState.update { it.copy(mensaje = e.message ?: "Error al iniciar sesión") }
+                }
         }
     }
 
@@ -57,7 +80,17 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
                             s.copy(usuarioActual = s.usuarioActual?.copy(imagenPerfilUri = rutaPermanente))
                         }
                     }
+                    .onFailure {
+                        _uiState.update { it.copy(mensaje = "No se pudo subir la foto") }
+                    }
             }
+        }
+    }
+
+    fun cargarTodosLosUsuarios() {
+        viewModelScope.launch {
+            val usuarios = userRepository.getAllUsers()
+            _uiState.update { it.copy(listaUsuarios = usuarios) }
         }
     }
 
@@ -75,12 +108,4 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         if (s.rut.isBlank()) { _uiState.update { it.copy(errorRut = "Requerido") }; esValido = false }
         return esValido
     }
-
-    fun cargarTodosLosUsuarios() {
-        viewModelScope.launch {
-            val usuarios = userRepository.getAllUsers()
-            _uiState.update { it.copy(listaUsuarios = usuarios) }
-        }
-    }
-
 }

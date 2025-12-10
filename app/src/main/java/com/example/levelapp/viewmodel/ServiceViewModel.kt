@@ -3,6 +3,8 @@ package com.example.levelapp.viewmodel
 import android.annotation.SuppressLint
 import android.content.Context
 import android.location.Geocoder
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.google.android.gms.location.LocationServices
@@ -65,6 +67,7 @@ class ServiceViewModel : ViewModel() {
         }
     }
 
+    @RequiresApi(Build.VERSION_CODES.O)
     fun enviarSolicitud() {
         val s = _uiState.value
         if (s.dispositivo.isBlank() || s.descripcion.isBlank() || s.direccion.isBlank()) {

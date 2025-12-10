@@ -15,7 +15,6 @@ interface ApiService {
         @Query("page_size") pageSize: Int = 5
     ): Response<RawgSearchResponse>
 
-
     @GET("api/products")
     suspend fun getProductsFromBackend(): Response<List<Product>>
 
@@ -23,14 +22,20 @@ interface ApiService {
     suspend fun createProductInBackend(@Body product: Product): Response<Product>
 
     @PUT("api/products/{id}")
-    suspend fun updateProductInBackend(
-        @Path("id") id: Long,
-        @Body product: Product
-    ): Response<Product>
+    suspend fun updateProductInBackend(@Path("id") id: Long, @Body product: Product): Response<Product>
 
     @DELETE("api/products/{id}")
     suspend fun deleteProductInBackend(@Path("id") id: Long): Response<Void>
 
     @POST("api/auth/login")
     suspend fun loginUser(@Body user: User): Response<User>
+
+    @POST("api/auth/register")
+    suspend fun registerUser(@Body user: User): Response<User>
+
+    @GET("api/auth/users")
+    suspend fun getAllUsersFromBackend(): Response<List<User>>
+
+    @PUT("api/auth/users/{id}")
+    suspend fun updateUserInBackend(@Path("id") id: Long, @Body user: User): Response<User>
 }

@@ -7,6 +7,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.example.levelapp.ui.screen.*
 import com.example.levelapp.viewmodel.*
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
 
 @Composable
 fun AppNavigation() {
@@ -40,6 +42,14 @@ fun AppNavigation() {
 
         composable(Screen.Cart.route) {
             CartScreen(navController, cartViewModel)
+        }
+
+        composable(
+            route = Screen.Detail.route,
+            arguments = listOf(navArgument("productId") { type = NavType.LongType })
+        ) { backStackEntry ->
+            val productId = backStackEntry.arguments?.getLong("productId") ?: 0L
+            ProductDetailScreen(navController, productId, productViewModel, cartViewModel)
         }
     }
 }

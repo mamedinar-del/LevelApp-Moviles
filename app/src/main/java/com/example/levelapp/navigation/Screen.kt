@@ -15,12 +15,15 @@ sealed class Screen(val route: String) {
     object Home : Screen("home_screen")
     object Admin : Screen("admin_screen")
     object Cart : Screen("cart_screen")
+
+    object Detail : Screen("detail_screen/{productId}") {
+        fun createRoute(productId: Long) = "detail_screen/$productId"
+    }
 }
 
 sealed class BottomNavItem(val route: String, val icon: ImageVector, val label: String) {
     object Home : BottomNavItem("home", Icons.Default.Home, "Inicio")
     object Search : BottomNavItem("search", Icons.Default.Search, "Buscar")
     object Cart : BottomNavItem("cart", Icons.Default.ShoppingCart, "Carrito")
-    object Coupons : BottomNavItem("coupons", Icons.Default.Star, "Cupones")
     object Profile : BottomNavItem("profile", Icons.Default.Person, "Perfil")
 }

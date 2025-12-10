@@ -8,8 +8,6 @@ import com.example.levelapp.data.repository.ProductRepository
 import com.example.levelapp.data.repository.RawgRepository
 import com.example.levelapp.model.Product
 import com.example.levelapp.model.RawgGame
-import com.example.levelapp.ui.utils.copiarImagenAInternalStorage
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
@@ -21,14 +19,10 @@ data class ProductUiState(
     val categoria: String = "",
     val imagenUri: Uri? = null,
     val mensaje: String? = null,
-
     val productos: List<Product> = emptyList(),
-
-    val searchText: String = "",
     val productosFiltrados: List<Product> = emptyList(),
-
+    val searchText: String = "",
     val idEdicion: Long? = null,
-
     val busquedaApiQuery: String = "",
     val resultadosApi: List<RawgGame> = emptyList(),
     val buscandoApi: Boolean = false,
@@ -42,35 +36,73 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     private val _uiState = MutableStateFlow(ProductUiState())
     val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
 
-    init { cargarProductos() }
+    init {
+        cargarProductos()
+    }
 
     fun onNombreChange(v: String) = _uiState.update { it.copy(nombre = v) }
     fun onDescripcionChange(v: String) = _uiState.update { it.copy(descripcion = v) }
     fun onStockChange(v: String) = _uiState.update { it.copy(stock = v) }
     fun onPrecioChange(v: String) = _uiState.update { it.copy(precio = v) }
     fun onCategoriaChange(v: String) = _uiState.update { it.copy(categoria = v) }
+    fun onImagenUriChange(uri: Uri?) { _uiState.update { it.copy(imagenUri = uri) } }
 
-    fun onImagenUriChange(uri: Uri?) {
-        if (uri == null) { _uiState.update { it.copy(imagenUri = null) }; return }
+    fun onSearchTextChange(text: String) {
+        _uiState.update { state ->
+            val filtrados = if (text.isBlank()) state.productos else state.productos.filter { it.nombre.contains(text, ignoreCase = true) }
+            state.copy(searchText = text, productosFiltrados = filtrados)
+        }
+    }
 
-        if (uri.toString().startsWith("http")) {
-            _uiState.update { it.copy(imagenUri = uri) }
-        } else {
-            viewModelScope.launch(Dispatchers.IO) {
-                val ruta = copiarImagenAInternalStorage(getApplication(), uri)
-                if (ruta != null) _uiState.update { it.copy(imagenUri = Uri.parse("file://$ruta")) }
+    fun cargarProductos() = viewModelScope.launch {
+        val lista = repository.getAllProducts()
+        _uiState.update { state ->
+            state.copy(
+                productos = lista,
+                productosFiltrados = if (state.searchText.isBlank()) lista else lista.filter { it.nombre.contains(state.searchText, true) }
+            )
+        }
+    }
+
+    fun guardarProducto() {
+        val s = _uiState.value
+        viewModelScope.launch {
+            val prod = Product(
+                id = s.idEdicion ?: 0,
+                nombre = s.nombre,
+                descripcion = s.descripcion,
+                stock = s.stock.toIntOrNull() ?: 0,
+                precio = s.precio.toDoubleOrNull() ?: 0.0,
+                categoria = s.categoria,
+                imagenUri = s.imagenUri.toString()
+            )
+
+            if (s.idEdicion == null) {
+                repository.addProduct(prod)
+                    .onSuccess {
+                        cargarProductos()
+                        _uiState.update { it.copy(mensaje = "Producto Creado", nombre = "", descripcion = "", stock = "", precio = "", categoria = "", imagenUri = null) }
+                    }
+                    .onFailure { e -> _uiState.update { it.copy(mensaje = "Error: ${e.message}") } }
+            } else {
+                repository.updateProduct(prod)
+                    .onSuccess {
+                        cargarProductos()
+                        _uiState.update { it.copy(mensaje = "Producto Actualizado", nombre = "", descripcion = "", stock = "", precio = "", categoria = "", imagenUri = null, idEdicion = null) }
+                    }
+                    .onFailure { e -> _uiState.update { it.copy(mensaje = "Error: ${e.message}") } }
             }
         }
     }
 
-    fun onSearchTextChange(text: String) {
-        _uiState.update { state ->
-            val filtrados = if (text.isBlank()) {
-                state.productos
-            } else {
-                state.productos.filter { it.nombre.contains(text, ignoreCase = true) }
-            }
-            state.copy(searchText = text, productosFiltrados = filtrados)
+    fun eliminarProducto(producto: Product) {
+        viewModelScope.launch {
+            repository.deleteProduct(producto.id)
+                .onSuccess {
+                    cargarProductos()
+                    _uiState.update { it.copy(mensaje = "Eliminado") }
+                }
+                .onFailure { e -> _uiState.update { it.copy(mensaje = "Error: ${e.message}") } }
         }
     }
 
@@ -90,32 +122,10 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun cancelarEdicion() {
-        limpiarForm()
+        _uiState.update { it.copy(nombre = "", descripcion = "", stock = "", precio = "", categoria = "", imagenUri = null, mensaje = null, idEdicion = null) }
     }
 
-    fun guardarProducto() {
-        val s = _uiState.value
-        if (s.nombre.isBlank() || s.imagenUri == null) { _uiState.update { it.copy(mensaje = "Faltan datos") }; return }
-
-        viewModelScope.launch {
-            if (s.idEdicion == null) {
-                val p = Product(0, s.nombre, s.descripcion, s.stock.toIntOrNull()?:0, s.precio.toDoubleOrNull()?:0.0, s.categoria, s.imagenUri.toString())
-                repository.addProduct(p).onSuccess { cargarProductos(); limpiarForm() }
-            } else {
-                val p = Product(s.idEdicion, s.nombre, s.descripcion, s.stock.toIntOrNull()?:0, s.precio.toDoubleOrNull()?:0.0, s.categoria, s.imagenUri.toString())
-                repository.updateProduct(p).onSuccess {
-                    cargarProductos()
-                    limpiarForm()
-                    _uiState.update { it.copy(mensaje = "Producto Actualizado") }
-                }
-            }
-        }
-    }
-
-    fun toggleDialogoApi() {
-        _uiState.update { it.copy(mostrarDialogoApi = !it.mostrarDialogoApi, resultadosApi = emptyList(), busquedaApiQuery = "") }
-    }
-
+    fun toggleDialogoApi() { _uiState.update { it.copy(mostrarDialogoApi = !it.mostrarDialogoApi) } }
     fun buscarEnApi(query: String) {
         _uiState.update { it.copy(busquedaApiQuery = query, buscandoApi = true) }
         viewModelScope.launch {
@@ -123,39 +133,9 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             _uiState.update { it.copy(resultadosApi = resultados, buscandoApi = false) }
         }
     }
-
     fun seleccionarJuegoApi(juego: RawgGame) {
         _uiState.update {
-            it.copy(
-                nombre = juego.name,
-                descripcion = "Lanzamiento: ${juego.released ?: "N/A"} | Rating: ${juego.rating}/5",
-                categoria = "Videojuego",
-                imagenUri = if (juego.backgroundImage != null) Uri.parse(juego.backgroundImage) else null,
-                mostrarDialogoApi = false
-            )
+            it.copy(nombre = juego.name, descripcion = "Lanzado: ${juego.released}", categoria = "Videojuego", imagenUri = if (juego.backgroundImage != null) Uri.parse(juego.backgroundImage) else null, mostrarDialogoApi = false)
         }
     }
-
-    fun cargarProductos() = viewModelScope.launch {
-        val lista = repository.getAllProducts()
-        _uiState.update {
-            it.copy(
-                productos = lista,
-                productosFiltrados = if (it.searchText.isBlank()) lista else lista.filter { p -> p.nombre.contains(it.searchText, true) }
-            )
-        }
-    }
-
-    fun eliminarProducto(producto: Product) {
-        viewModelScope.launch {
-            repository.deleteProduct(producto.id).onSuccess {
-                cargarProductos()
-                _uiState.update { it.copy(mensaje = "Producto eliminado: ${producto.nombre}") }
-            }.onFailure {
-                _uiState.update { it.copy(mensaje = "Error al eliminar") }
-            }
-        }
-    }
-
-    private fun limpiarForm() = _uiState.update { it.copy(nombre = "", descripcion = "", stock = "", precio = "", categoria = "", imagenUri = null, mensaje = null, idEdicion = null) }
 }
