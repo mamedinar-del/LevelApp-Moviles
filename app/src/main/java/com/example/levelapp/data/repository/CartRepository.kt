@@ -34,11 +34,18 @@ class CartRepository(context: Context) {
         cartItems.clear()
     }
 
-    suspend fun sendOrder(userId: Long): Result<Order> {
+    suspend fun sendOrder(userId: Long, comuna: String, region: String, direccion: String, numero: String): Result<Order> {
         val requestItems = cartItems.map {
             OrderItemRequest(productId = it.productId, quantity = it.quantity)
         }
-        val request = OrderRequest(userId = userId, items = requestItems)
+        val request = OrderRequest(
+            userId = userId, 
+            items = requestItems,
+            comuna = comuna,
+            region = region,
+            direccion = direccion,
+            numero = numero
+        )
 
         return try {
             val response = api.createOrder(request)

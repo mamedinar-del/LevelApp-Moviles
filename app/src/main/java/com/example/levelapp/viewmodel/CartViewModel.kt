@@ -82,13 +82,13 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun procesarPago(userId: Long) {
+    fun procesarPago(userId: Long, comuna: String, region: String, direccion: String, numero: String) {
         if (_uiState.value.cartItems.isEmpty()) return
 
         viewModelScope.launch {
             _uiState.update { it.copy(procesandoPago = true) }
 
-            val result = repository.sendOrder(userId)
+            val result = repository.sendOrder(userId, comuna, region, direccion, numero)
 
             if (result.isSuccess) {
                 repository.clearCart()

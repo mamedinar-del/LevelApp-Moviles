@@ -41,6 +41,7 @@ fun CartScreen(
     CartScreenInternal(cartViewModel, authViewModel, navController)
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CartScreenInternal(
     cartViewModel: CartViewModel,
@@ -50,6 +51,11 @@ fun CartScreenInternal(
     val uiState by cartViewModel.uiState.collectAsState()
     val authState by authViewModel.uiState.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
+
+    var comuna by remember { mutableStateOf("") }
+    var region by remember { mutableStateOf("") }
+    var direccion by remember { mutableStateOf("") }
+    var numero by remember { mutableStateOf("") }
 
     Box(
         modifier = Modifier
@@ -116,6 +122,52 @@ fun CartScreenInternal(
                     }
 
                     if (!uiState.pagoExitoso) {
+
+                        Text("Información de Envío", style = MaterialTheme.typography.titleLarge, color = Color.White, fontWeight = FontWeight.Bold)
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        val textFieldColors = OutlinedTextFieldDefaults.colors(
+                            focusedTextColor = Color.White,
+                            unfocusedTextColor = Color.White,
+                            cursorColor = Color.White,
+                            focusedBorderColor = Color.White,
+                            unfocusedBorderColor = Color.White.copy(alpha = 0.5f),
+                            focusedLabelColor = Color.White,
+                            unfocusedLabelColor = Color.White.copy(alpha = 0.7f)
+                        )
+
+                        OutlinedTextField(
+                            value = comuna,
+                            onValueChange = { comuna = it },
+                            label = { Text("Comuna") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = region,
+                            onValueChange = { region = it },
+                            label = { Text("Región") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = direccion,
+                            onValueChange = { direccion = it },
+                            label = { Text("Dirección") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors
+                        )
+                        Spacer(modifier = Modifier.height(8.dp))
+                        OutlinedTextField(
+                            value = numero,
+                            onValueChange = { numero = it },
+                            label = { Text("Número") },
+                            modifier = Modifier.fillMaxWidth(),
+                            colors = textFieldColors
+                        )
+
                         Divider(color = Color.White.copy(alpha = 0.5f), modifier = Modifier.padding(vertical = 16.dp))
 
                         Row(
@@ -138,7 +190,7 @@ fun CartScreenInternal(
                             onClick = {
                                 val user = authState.usuarioActual
                                 if (user != null) {
-                                    cartViewModel.procesarPago(user.id)
+                                    cartViewModel.procesarPago(user.id, comuna, region, direccion, numero)
                                 } else {
                                     navController.navigate(Screen.Login.route)
                                 }
@@ -148,7 +200,7 @@ fun CartScreenInternal(
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = if (uiState.procesandoPago) Color(0xFF38a1ee) else Color(0xFF1A2B3C)
                             ),
-                            enabled = !uiState.procesandoPago
+                            enabled = !uiState.procesandoPago && comuna.isNotBlank() && region.isNotBlank() && direccion.isNotBlank() && numero.isNotBlank()
                         ) {
                             if (uiState.procesandoPago) {
                                 CircularProgressIndicator(color = Color.White, modifier = Modifier.size(24.dp), strokeWidth = 2.dp)
