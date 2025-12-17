@@ -15,7 +15,7 @@ object RetrofitClient {
             .create(ApiService::class.java)
     }
 
-    private const val BASE_URL_BACKEND = "http://10.0.2.2:8080/"
+    private const val BASE_URL_BACKEND = "http://18.221.27.98:8080/"
 
     val backendService: ApiService by lazy {
         Retrofit.Builder()
