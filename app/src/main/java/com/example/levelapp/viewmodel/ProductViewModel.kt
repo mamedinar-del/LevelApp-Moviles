@@ -29,9 +29,11 @@ data class ProductUiState(
     val mostrarDialogoApi: Boolean = false
 )
 
-class ProductViewModel(application: Application) : AndroidViewModel(application) {
-    private val repository = ProductRepository(application)
-    private val rawgRepository = RawgRepository()
+class ProductViewModel @JvmOverloads constructor(
+    application: Application,
+    private val repository: ProductRepository = ProductRepository(application),
+    private val rawgRepository: RawgRepository = RawgRepository()
+) : AndroidViewModel(application) {
 
     private val _uiState = MutableStateFlow(ProductUiState())
     val uiState: StateFlow<ProductUiState> = _uiState.asStateFlow()
@@ -126,6 +128,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun toggleDialogoApi() { _uiState.update { it.copy(mostrarDialogoApi = !it.mostrarDialogoApi) } }
+
     fun buscarEnApi(query: String) {
         _uiState.update { it.copy(busquedaApiQuery = query, buscandoApi = true) }
         viewModelScope.launch {
@@ -133,6 +136,7 @@ class ProductViewModel(application: Application) : AndroidViewModel(application)
             _uiState.update { it.copy(resultadosApi = resultados, buscandoApi = false) }
         }
     }
+
     fun seleccionarJuegoApi(juego: RawgGame) {
         _uiState.update {
             it.copy(nombre = juego.name, descripcion = "Lanzado: ${juego.released}", categoria = "Videojuego", imagenUri = if (juego.backgroundImage != null) Uri.parse(juego.backgroundImage) else null, mostrarDialogoApi = false)
