@@ -5,6 +5,8 @@ import com.example.levelapp.model.RawgSearchResponse
 import com.example.levelapp.model.User
 import retrofit2.Response
 import retrofit2.http.*
+import com.example.levelapp.model.Order
+import com.example.levelapp.model.OrderRequest
 
 interface ApiService {
 
@@ -38,4 +40,10 @@ interface ApiService {
 
     @PUT("api/auth/users/{id}")
     suspend fun updateUserInBackend(@Path("id") id: Long, @Body user: User): Response<User>
+
+    @GET("api/orders")
+    suspend fun getAllOrders(): Response<List<Order>>
+
+    @POST("api/orders")
+    suspend fun createOrder(@Body request: OrderRequest): Response<Order>
 }

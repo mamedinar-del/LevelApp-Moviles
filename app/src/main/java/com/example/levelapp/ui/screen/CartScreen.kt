@@ -1,11 +1,6 @@
 package com.example.levelapp.ui.screen
 
 import android.net.Uri
-import androidx.compose.animation.AnimatedContent
-import androidx.compose.animation.core.tween
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -25,23 +20,35 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
 import coil.compose.rememberAsyncImagePainter
 import com.example.levelapp.R
 import com.example.levelapp.model.CartItem
+import com.example.levelapp.navigation.Screen
+import com.example.levelapp.viewmodel.AuthViewModel
 import com.example.levelapp.viewmodel.CartViewModel
 import java.text.NumberFormat
 import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun CartScreen(navController: NavController, cartViewModel: CartViewModel) {
-    CartScreenInternal(cartViewModel)
+fun CartScreen(
+    navController: NavController,
+    cartViewModel: CartViewModel,
+    authViewModel: AuthViewModel = viewModel()
+) {
+    CartScreenInternal(cartViewModel, authViewModel, navController)
 }
 
 @Composable
-fun CartScreenInternal(cartViewModel: CartViewModel) {
+fun CartScreenInternal(
+    cartViewModel: CartViewModel,
+    authViewModel: AuthViewModel,
+    navController: NavController
+) {
     val uiState by cartViewModel.uiState.collectAsState()
+    val authState by authViewModel.uiState.collectAsState()
     val currencyFormat = NumberFormat.getCurrencyInstance(Locale("es", "CL"))
 
     Box(
@@ -128,7 +135,14 @@ fun CartScreenInternal(cartViewModel: CartViewModel) {
                         Spacer(modifier = Modifier.height(16.dp))
 
                         Button(
-                            onClick = { cartViewModel.procesarPago() },
+                            onClick = {
+                                val user = authState.usuarioActual
+                                if (user != null) {
+                                    cartViewModel.procesarPago(user.id)
+                                } else {
+                                    navController.navigate(Screen.Login.route)
+                                }
+                            },
                             modifier = Modifier.fillMaxWidth().height(54.dp),
                             shape = RoundedCornerShape(12.dp),
                             colors = ButtonDefaults.buttonColors(

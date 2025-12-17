@@ -82,25 +82,30 @@ class CartViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun procesarPago() {
+    fun procesarPago(userId: Long) {
+        if (_uiState.value.cartItems.isEmpty()) return
+
         viewModelScope.launch {
             _uiState.update { it.copy(procesandoPago = true) }
 
-            delay(3000)
+            val result = repository.sendOrder(userId)
 
-            repository.clearCart()
-
-            _uiState.update {
-                it.copy(
-                    procesandoPago = false,
-                    pagoExitoso = true,
-                    cartItems = emptyList(),
-                    total = 0.0
-                )
+            if (result.isSuccess) {
+                repository.clearCart()
+                _uiState.update {
+                    it.copy(
+                        procesandoPago = false,
+                        pagoExitoso = true,
+                        cartItems = emptyList(),
+                        total = 0.0
+                    )
+                }
+                delay(3000)
+                _uiState.update { it.copy(pagoExitoso = false) }
+            } else {
+                println("Error al procesar pago: ${result.exceptionOrNull()?.message}")
+                _uiState.update { it.copy(procesandoPago = false) }
             }
-
-            delay(3000)
-            _uiState.update { it.copy(pagoExitoso = false) }
         }
     }
 }

@@ -32,14 +32,18 @@ import coil.compose.rememberAsyncImagePainter
 import com.example.levelapp.R
 import com.example.levelapp.navigation.Screen
 import com.example.levelapp.viewmodel.AuthViewModel
+import com.example.levelapp.viewmodel.OrderViewModel
 import com.example.levelapp.viewmodel.ProductViewModel
 import java.io.File
+import com.example.levelapp.model.Order
 
 @Composable
 fun AdminScreen(
     navController: NavController,
     pvm: ProductViewModel = viewModel(),
-    authViewModel: AuthViewModel = viewModel()
+    authViewModel: AuthViewModel = viewModel(),
+    orderViewModel: OrderViewModel = viewModel()
+
 ) {
     var selectedTab by remember { mutableIntStateOf(0) }
     val tabs = listOf("Productos", "Usuarios", "Pedidos")
@@ -91,7 +95,7 @@ fun AdminScreen(
                 when (selectedTab) {
                     0 -> AdminProductsTab(pvm)
                     1 -> AdminUsersTab(authViewModel)
-                    2 -> AdminOrdersTab()
+                    2 -> AdminOrdersTab(orderViewModel)
                 }
             }
         }
@@ -319,28 +323,147 @@ fun AdminProductsTab(pvm: ProductViewModel) {
 }
 
 @Composable
-fun AdminOrdersTab() {
-    var cliente by remember { mutableStateOf("") }
-    var producto by remember { mutableStateOf("") }
-    var cantidad by remember { mutableStateOf("") }
-    var mensaje by remember { mutableStateOf<String?>(null) }
+fun AdminOrdersTab(viewModel: OrderViewModel) {
+    val uiState by viewModel.uiState.collectAsState()
 
+    // Cargar los pedidos automáticamente al entrar en la pestaña
+    LaunchedEffect(Unit) {
+        viewModel.cargarPedidos()
+    }
+
+    Column(modifier = Modifier.fillMaxSize()) {
+        // Encabezado con botón de refrescar
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                "Historial de Pedidos Reales",
+                style = MaterialTheme.typography.titleLarge,
+                color = Color.White,
+                fontWeight = FontWeight.Bold
+            )
+            IconButton(onClick = { viewModel.cargarPedidos() }) {
+                Icon(Icons.Default.Refresh, contentDescription = "Recargar", tint = Color.White)
+            }
+        }
+
+        // Manejo de estados (Carga, Error, Lista vacía, Lista con datos)
+        if (uiState.isLoading) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                CircularProgressIndicator(color = Color.White)
+            }
+        } else if (uiState.error != null) {
+            Card(colors = CardDefaults.cardColors(containerColor = Color(0xFFFFCDD2))) {
+                Text(
+                    text = "Error: ${uiState.error}",
+                    color = Color.Red,
+                    modifier = Modifier.padding(16.dp)
+                )
+            }
+        } else if (uiState.orders.isEmpty()) {
+            Text("No se encontraron pedidos registrados.", color = Color.LightGray)
+        } else {
+            LazyColumn(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.fillMaxSize()
+            ) {
+                items(uiState.orders) { order ->
+                    OrderItemCard(order)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun OrderItemCard(order: Order) {
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
-        shape = RoundedCornerShape(16.dp)
+        elevation = CardDefaults.cardElevation(4.dp),
+        shape = RoundedCornerShape(12.dp)
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Nuevo Pedido (Simulado)", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-            Spacer(Modifier.height(16.dp))
-            OutlinedTextField(cliente, { cliente = it }, label = { Text("Cliente") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(producto, { producto = it }, label = { Text("Producto") }, modifier = Modifier.fillMaxWidth())
-            Spacer(Modifier.height(8.dp))
-            OutlinedTextField(cantidad, { cantidad = it }, label = { Text("Cantidad") }, modifier = Modifier.fillMaxWidth(), keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
-            Spacer(Modifier.height(16.dp))
-            Button(onClick = { if (cliente.isNotEmpty()) { mensaje = "Pedido creado"; cliente="" } else mensaje = "Faltan datos" }, modifier = Modifier.fillMaxWidth()) { Text("Generar") }
-            mensaje?.let { Spacer(Modifier.height(8.dp)); Text(it, color = Color(0xFF2E7D32), fontWeight = FontWeight.Bold) }
+            // Fila superior: ID y Estado
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Pedido #${order.id}",
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.Bold
+                )
+                Surface(
+                    color = if (order.estado == "COMPLETADO") Color(0xFFE8F5E9) else Color(0xFFFFF3E0),
+                    shape = RoundedCornerShape(4.dp)
+                ) {
+                    Text(
+                        text = order.estado,
+                        color = if (order.estado == "COMPLETADO") Color(0xFF2E7D32) else Color(0xFFE65100),
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Bold,
+                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
+            // Información del Cliente
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.Person, contentDescription = null, tint = Color.Gray, modifier = Modifier.size(16.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = "${order.usuario.nombre} ${order.usuario.apellido}",
+                    style = MaterialTheme.typography.bodyMedium
+                )
+            }
+            Text(
+                text = order.fecha,
+                style = MaterialTheme.typography.labelSmall,
+                color = Color.Gray,
+                modifier = Modifier.padding(start = 20.dp)
+            )
+
+            HorizontalDivider(modifier = Modifier.padding(vertical = 12.dp))
+
+            // Lista de productos
+            Text("Productos:", style = MaterialTheme.typography.labelMedium, fontWeight = FontWeight.SemiBold)
+            order.detalles.forEach { detalle ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Text(
+                        text = "${detalle.cantidad}x ${detalle.producto.nombre}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray
+                    )
+                    Text(
+                        text = "$${(detalle.precioUnitario * detalle.cantidad).toInt()}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Bold
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
+            // Total
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.End
+            ) {
+                Text(
+                    text = "Total: $${order.total.toInt()}",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Black,
+                    color = Color(0xFF4ea495)
+                )
+            }
         }
     }
 }

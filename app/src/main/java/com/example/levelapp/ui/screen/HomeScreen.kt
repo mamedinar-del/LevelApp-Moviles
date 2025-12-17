@@ -37,6 +37,7 @@ import com.example.levelapp.viewmodel.AuthViewModel
 import com.example.levelapp.viewmodel.CartViewModel
 import com.example.levelapp.viewmodel.ProductViewModel
 import kotlinx.coroutines.delay
+import java.io.File
 
 data class BottomNavItem(
     val label: String,
@@ -109,7 +110,11 @@ fun HomeScreen(
                         }
                     )
                     1 -> com.example.levelapp.ui.screen.ServiceScreen()
-                    2 -> CartScreenInternal(cartViewModel)
+                    2 -> CartScreenInternal(
+                        cartViewModel = cartViewModel,
+                        authViewModel = authViewModel,
+                        navController = navController
+                    )
                     3 -> ProfileScreen(
                         authViewModel = authViewModel,
                         onLogout = {
@@ -225,10 +230,10 @@ fun ProductCard(
                     .background(Color.White),
                 contentAlignment = Alignment.Center
             ) {
-                val model = when {
-                    product.imagenUri.startsWith("android.resource") -> Uri.parse(product.imagenUri)
-                    product.imagenUri.startsWith("http") -> product.imagenUri
-                    else -> java.io.File(product.imagenUri)
+                val model = if (product.imagenUri.startsWith("http") || product.imagenUri.startsWith("android.resource")) {
+                    Uri.parse(product.imagenUri)
+                } else {
+                    File(product.imagenUri)
                 }
 
                 val painter = rememberAsyncImagePainter(
